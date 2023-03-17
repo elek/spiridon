@@ -28,7 +28,7 @@ console.log(addresses)
 
 async function displayLoginButton() {
     const address = await signer.getAddress()
-    document.querySelector<HTMLDivElement>('#login')!.innerHTML = `<button id='siweBtn'>Sign-in with Ethereum with ${address}</button>`
+    document.querySelector<HTMLDivElement>('#login')!.innerHTML = `<button class="btn btn-warning" id='siweBtn'>Sign-in with Ethereum with ${address}</button>`
     const signinBtn = document.getElementById('siweBtn');
     if (signinBtn != null) {
         signinBtn.onclick = signInWithEthereum;
@@ -36,7 +36,7 @@ async function displayLoginButton() {
 }
 
 if (addresses.length == 0) {
-    document.querySelector<HTMLDivElement>('#login')!.innerHTML = `<button id='connectWalletBtn'>Connect wallet</button>`
+    document.querySelector<HTMLDivElement>('#login')!.innerHTML = `<button class="btn btn-danger" id='connectWalletBtn'>Connect wallet</button>`
     const connectWalletBtn = document.getElementById('connectWalletBtn');
     if (connectWalletBtn != null) {
         connectWalletBtn.onclick = connectWallet;
@@ -48,8 +48,8 @@ if (addresses.length == 0) {
 
 async function connectWallet() {
     provider.send('eth_requestAccounts', [])
-        .catch(() => console.log('user rejected request'));
-    await displayLoginButton();
+        .catch(() => console.log('user rejected request'))
+        .then(() => displayLoginButton());
 }
 
 async function signInWithEthereum() {
