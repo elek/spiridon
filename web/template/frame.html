@@ -40,7 +40,8 @@
                 {{  if eq .wallet ""}}
                 <li class="nav-item"><a href="/login" class="nav-link">Login</a>
                 {{ else }}
-                    <li class="nav-item"><a href="/wallet/{{.wallet}}" class="nav-link">My Nodes</a>
+                    {{ $wp := print "/wallet/" .wallet}}
+                    <li class="nav-item"><a href="/wallet/{{.wallet}}" class="nav-link  {{if eq .path $wp }}active{{ end }}">My Nodes</a>
                     <li class="nav-item"><a href="/logout" class="nav-link">Logout</a>
                 {{ end }}
             </ul>
