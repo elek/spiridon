@@ -1,0 +1,26 @@
+<h1 class="mt-5">Node List</h1>
+
+
+<table class="table">
+    <thead>
+    <tr>
+        <th scope="col">node ID</th>
+        <th scope="col">last check-In</th>
+        <th scope="col">version</th>
+        <th scope="col">address</th>
+        <th scope="col">status</th>
+    </tr>
+    </thead>
+    <tbody>
+    {{ range $val := .nodes }}
+    <tr class="align-middle">
+        <td><a href="/node/{{ $val.ID}}">{{ $val.ID }}</a></td>
+        <td>{{ $val.LastCheckIn.Format "2006-01-02 15:04:05" }}</td>
+        <td>{{ $val.Version }}</td>
+        <td>{{ $val.Address }}</td>
+        <td>{{ template "status" $val.Health }}</td>
+    </tr>
+    {{ end }}
+    </tbody>
+</table>
+</p>

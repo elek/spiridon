@@ -1,0 +1,69 @@
+<p>This is a community satellite for the federated Storj network.</p>
+<h2 id="what-is-this">What is this?</h2>
+<p>This is a <b>lightweight</b> community Satellite for <a href="https://storj.io">Storj</a> network.</p>
+<p>It doesn’t store permanent data, but helps to monitor your nodes + share the collected statistics with the community.</p>
+<p>For example: a connected Telegram bot can ping you, in case of any Storagenode problems.</p>
+<h2 id="what-is-a-satellite">What is a satellite?</h2>
+<p>Satellite is the metadata server of the federated <a href="https://storj.io">Storj</a> network. Usually it stores the location the data, while the connected Storagenodes are hosting the data.</p>
+<p>This Satellite is special as it doesn’t really store data.</p>
+<h2 id="how-can-i-join-to-this-satellite">How can I join to this Satellite</h2>
+<p>Set the following environment variables for yor Storagenode:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="va">STORJ_STORAGE2_TRUST_SOURCES</span><span class="op">=</span><span class="st">&quot;https://www.storj.io/dcs-satellites,storj://1NusSk8HjWppghiWvofEBDqryDaxiALPah8EyRxXWdNkwXg7ai@spiridon.anzix.net:7777&quot;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="va">STORJ_SERVER_USE_PEER_CA_WHITELIST</span><span class="op">=</span>false</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="va">STORJ_HEALTHCHECK_DETAILS</span><span class="op">=</span>true</span></code></pre></div>
+<p>Note: <code>STORJ_HEALTHCHECK_DETAILS</code> is not required, but it helps to maintain a list of <a href="/satellites">satellites</a> with reputation (usage) data. This flag will share the connected satellites + scores with the public (including this satellite).</p>
+<p><em>Warning</em>: Please carefully check which data is published on this site (address, version, uptime,…). Join only if you are comfortable with transparent data sharing. (Operator email address will never be shared, as we don’t store them.)</p>
+<h2 id="how-can-i-get-notifications-about-my-storagenode">How can I get notifications about my Storagenode</h2>
+<p>Search for <code>@satellite_spiridon_bot</code> on Telegram and use <code>/subscribe &lt;nodeid&gt;</code>.</p>
+<p>Supported commands:</p>
+<ul>
+<li><code>/subscribe &lt;nodeid&gt;</code>: subscribe to any status change related to the given <code>&lt;nodeid&gt;</code></li>
+<li><code>/unsubscribe &lt;nodeid&gt;</code>: unsubscribe for any new status change related to the give node</li>
+<li><code>/subscriptions</code>: list active subscriptions</li>
+</ul>
+<h2 id="how-does-it-differ-from-original-storj-satellites">How does it differ from original Storj satellites</h2>
+<ul>
+<li>It doesn’t disqualify you</li>
+<li>It doesn’t store real data (only a minimal amount to test actual availability / performance)</li>
+<li>It gives you fast notification (Using Telegram bot)</li>
+<li>It provides freely available data from the connected nodes to everybody
+<ul>
+<li>nodeID, connectivity information (IP/domain), availability (latency / upload speed / health), free space</li>
+</ul></li>
+</ul>
+<p>Planned resource boundaries:</p>
+<ul>
+<li>Data stored permanently: <code>&lt;100MB</code>,
+<ul>
+<li>typically store only one 4MB piece to monitor retrievability (not yet implemented)</li>
+<li>Occasional test with bigger files (not yet implemented)</li>
+</ul></li>
+<li>Planned temporary store (deleted in one day): <code>&lt;1GB</code>
+<ul>
+<li>Only for occasional tests. Planned to provide it per-request of the owner (not yet implemented)</li>
+</ul></li>
+<li>Planned bandwidth usage <code>&lt;1GB</code> / day.
+<ul>
+<li>an hourly 4Mb upload/download check is <code>24 * 4 * 2 = 200Mb</code>) (not yet implemented)</li>
+<li>Other occasional tests may exceed this (not yet implemented)</li>
+</ul></li>
+</ul>
+<h2 id="do-you-have-feature-plans">Do you have feature plans</h2>
+<p>A lot. For example:</p>
+<ul>
+<li>notification bot for other protocols (like ntfy, but it requires code change in satellite protocol)</li>
+<li>better statistics (version distribution, …)</li>
+<li>measuring and share latency data (maybe from multiple locations) and share the feedback (how good is your Storagenode compared to others.)</li>
+<li>single piece audit: store one single piece on everynode (4MB) and constantly check retrievability</li>
+<li>advanced features for owners (metrics from the storagenodes?)</li>
+<li>personal dashboard for node operators</li>
+</ul>
+<h2 id="how-does-it-work-technically">How does it work technically</h2>
+<p>This is a full reimplementation of Storj Satellite protocol without using the original code of <code>storj/storj</code>. It’s quite easy as we don’t need to support any real upload/download/accounting only a very few endpooint to manage nodes.</p>
+<h2 id="is-it-a-paid-satellite">Is it a paid satellite?</h2>
+<p>Nope. But it doesn’t really use your resources anyway.</p>
+<p>If you would like to get money, join to the Storj Labs satellite: <a href="https://www.storj.io/dcs-satellites">https://www.storj.io/dcs-satellites</a> (Enabled, by default)</p>
+<h2 id="who-is-the-operator-of-this-satellite">Who is the operator of this Satellite?</h2>
+<p><a href="https://github.com/elek">Márton Elek</a>. Long-term open source maintained, Apache committer / PMC member, and – as of now – employee of Storj Labs. Running this Satellite is a private effort and independent on Storj Labs. (but expertise learned during the daily job certainly helped).</p>
+<h1 id="bug-report-feature-request-security-report">Bug report / feature request / security report</h1>
+<p>https://github.com/elek/spiridon</p>

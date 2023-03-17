@@ -1,0 +1,9 @@
+12EayRS2V1kEsWESU9QMRseFhdxYxKicsiFmxrsLZHeLUtdps3S@us1.storj.io:7777 Official Storj Labs US1 production satellite
+12L9ZFwhzVpuEKMUNUqkaTLGzwY9G24tbiigLiXpmZWKwmcNDDs@eu1.storj.io:7777 Official Storj Labs EU1 production satellite
+121RTSDpyNZVcEU84Ticf2L1ntiuUimbWgfATz21tuvgk3vzoA6@ap1.storj.io:7777 Official Storj Labs AP1 production satellite
+1wFTAgs9DP5RSnCqKV1eLf6N9wtk4EAtmN5DpSxcs8EjT69tGE@saltlake.tardigrade.io:7777 Official Storj Labs production satellite
+12rfG3sh9NCWiX3ivPjq2HtdLmbqCrvHVEzJubnzFzosMuawymB@europe-north-1.tardigrade.io:7777 Official Storj Labs production satellite
+12tRQrMTWUWwzwGh18i7Fqs67kmdhH9t6aToeiwbo5mfS2rUmo@us2.storj.io:7777 Official Storj Labs beta production satellite
+1NusSk8HjWppghiWvofEBDqryDaxiALPah8EyRxXWdNkwXg7ai@spiridon.anzix.net:7777 Monitoring and statistical satellite (this instance)
+1GGZktUwmMKTwTWNcmGnFJ3n7rjE58QnNcRp98Y23MmbDnVoiU@satellite.qa.storj.io:7777 Storj Labs QA satellite (unpaid)
+12ZQbQ8WWFEfKNE9dP78B1frhJ8PmyYmr8occLEf1mQ1ovgVWy@testnet.satellite.stefan-benten.de:7777 Testnet satellite from Stefan Benten

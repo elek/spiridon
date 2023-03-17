@@ -1,0 +1,28 @@
+<p>
+    This is a transparent list of used satellites. Please consider to use <code>STORJ_HEALTHCHECK_DETAILS=true</code> environment
+    variable to report satellites, used by your storagenode.</p>
+<p>
+<p>Please keep in your mind, that numbers may include votes from brand new storagenodes without history / reputation. We will filter them out later.</p>
+<h1 class="mt-5">Reported Satellite usages</h1>
+<p>
+<table class="table">
+    <thead>
+    <tr>
+        <th scope="col">node ID</th>
+        <th scope="col">address</th>
+        <th scope="col">description</th>
+        <th scope="col"># of SN</th>
+    </tr>
+    </thead>
+    <tbody>
+    {{ range $val := .satellites }}
+    <tr class="align-middle">
+        <td>{{ $val.Satellite.ID }}</td>
+        <td>{{ $val.Satellite.Address }}</td>
+        <td>{{ $val.Satellite.Description }}</td>
+        <td>{{ $val.Count }}</td>
+    </tr>
+    {{ end }}
+    </tbody>
+</table>
+</p>

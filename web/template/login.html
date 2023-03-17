@@ -1,0 +1,16 @@
+{{ if .address }}
+You are logged in with wallet {{ .address }}.
+<a href="/logout">logout</a>
+{{ else }}
+<h2 class="mt-5">Login</h2>
+<p>You can login with your Ethereum wallet (eg. Metamask). If you have nodes registered with the same wallet, you list
+    all of them in one single page</p>
+<div id="login"></div>
+<script type="module" src="/src/main.ts"></script>
+<form id="loginform" action="/login" method="POST">
+    <input id="message" type="hidden" name="message" value="">
+    <input id="signature" type="hidden" name="signature" value="">
+</form>
+{{ end }}
+
+<script type="module" src="{{ .js }}"></script>
