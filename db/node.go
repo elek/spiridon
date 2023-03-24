@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql/driver"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -59,14 +60,20 @@ func (n *Nodes) Get(id NodeID) (Node, error) {
 	return node, result.Error
 }
 
-func (n *Nodes) ListALl() ([]Node, error) {
+func (n *Nodes) ListNodes() ([]Node, error) {
 	var nodes []Node
 	n.db.Select([]string{"id", "first_check_in", "last_check_in", "free_disk", "address", "version", "commit_hash", "timestamp", "release", "health"}).Find(&nodes)
 	return nodes, nil
 }
 
+func (n *Nodes) ListNodesInternal() ([]Node, error) {
+	var nodes []Node
+	n.db.Find(&nodes)
+	return nodes, nil
+}
+
 func (n *Nodes) GetStatus(id NodeID) (map[string]Status, error) {
-	res := []Status{}
+	var res []Status
 	result := n.db.Where("id = ?", id).Find(&res)
 
 	ret := map[string]Status{}
@@ -160,8 +167,32 @@ func (n *Nodes) SatelliteList() ([]UsedSatellite, error) {
 	return res, nil
 }
 
-func (n *Nodes) ListForWallet(wallet string) ([]Node, error) {
+func (n *Nodes) GetWalletWithNodes(walletAddress common.Address) (Wallet, []Node, error) {
 	var nodes []Node
-	n.db.Where("operator_wallet = ?", wallet).Select([]string{"id", "first_check_in", "last_check_in", "free_disk", "address", "version", "commit_hash", "timestamp", "release", "health"}).Find(&nodes)
-	return nodes, nil
+	n.db.Where("operator_wallet = ?", walletAddress.String()).Select([]string{"id", "first_check_in", "last_check_in", "free_disk", "address", "version", "commit_hash", "timestamp", "release", "health"}).Find(&nodes)
+
+	var wallet Wallet
+	n.db.First(&wallet, "address = ?", walletAddress.String())
+	if wallet.Address == "" {
+		wallet.Address = walletAddress.String()
+	}
+	return wallet, nodes, nil
+}
+
+func (n *Nodes) SaveWallet(w Wallet) error {
+	res := n.db.Clauses(
+		clause.OnConflict{
+			Columns:   []clause.Column{{Name: "address"}},
+			DoUpdates: clause.Assignments(map[string]interface{}{"ntfy_channel": w.NtfyChannel}),
+		}).Create(w)
+	return res.Error
+}
+
+func (n *Nodes) GetWallet(walletAddress common.Address) (Wallet, error) {
+	var wallet Wallet
+	n.db.First(&wallet, "address = ?", walletAddress.String())
+	if wallet.Address == "" {
+		wallet.Address = walletAddress.String()
+	}
+	return wallet, nil
 }

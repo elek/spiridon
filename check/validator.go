@@ -34,7 +34,7 @@ func NewValidator(nodes *db.Nodes, notification *bot.Notification, identity *ide
 
 func (v *Validator) Loop(ctx context.Context) error {
 	for {
-		nodes, err := v.nodes.ListALl()
+		nodes, err := v.nodes.ListNodesInternal()
 		if err != nil {
 			panic(err)
 		}

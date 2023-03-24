@@ -96,7 +96,7 @@ func (r *Robot) Handle(targetType int, target string, message string) (string, e
 		}
 		return out, nil
 	case "size":
-		nodes, err := r.nodes.ListALl()
+		nodes, err := r.nodes.ListNodes()
 		if err != nil {
 			return "", err
 		}

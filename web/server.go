@@ -5,8 +5,11 @@ import (
 	"embed"
 	_ "embed"
 	"github.com/elek/spiridon/db"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/nu7hatch/gouuid"
+	"github.com/pkg/errors"
 	"github.com/spacemonkeygo/monkit/v3"
 	"net/http"
 	"os"
@@ -24,7 +27,7 @@ var res embed.FS
 var dist embed.FS
 
 type Server struct {
-	nodes        *db.Nodes
+	db           *db.Nodes
 	port         int
 	cookieSecret string
 	domain       string
@@ -32,7 +35,7 @@ type Server struct {
 
 func NewServer(nodes *db.Nodes, port int, cookieSecret string, domain string) *Server {
 	return &Server{
-		nodes:        nodes,
+		db:           nodes,
 		port:         port,
 		cookieSecret: cookieSecret,
 		domain:       domain,
@@ -65,7 +68,7 @@ func (s *Server) Run(ctx context.Context) error {
 
 	e.GET("/nodes", func(c echo.Context) error {
 
-		all, err := s.nodes.ListALl()
+		all, err := s.db.ListNodes()
 		if err != nil {
 			return err
 		}
@@ -83,18 +86,63 @@ func (s *Server) Run(ctx context.Context) error {
 		if param != getCurrentAddress(c) {
 			return c.String(http.StatusForbidden, "access denied")
 		}
-		all, err := s.nodes.ListForWallet(param)
+		wallet, all, err := s.db.GetWalletWithNodes(common.HexToAddress(param))
 		if err != nil {
 			return err
 		}
 
-		return c.Render(http.StatusOK, "nodes", map[string]interface{}{
-			"nodes": all,
+		return c.Render(http.StatusOK, "wallet", map[string]interface{}{
+			"nodes":  all,
+			"wallet": wallet,
 		})
 	})
-	e.GET("/nodes.json", func(c echo.Context) error {
+	e.POST("/wallet/:wallet/ntfy-generate", func(c echo.Context) error {
 
-		all, err := s.nodes.ListALl()
+		param := c.Param("wallet")
+		if param == "" {
+			return c.String(http.StatusNotFound, "not found")
+		}
+		if param != getCurrentAddress(c) {
+			return c.String(http.StatusForbidden, "access denied")
+		}
+		uuid, err := uuid.NewV4()
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		err = s.db.SaveWallet(db.Wallet{
+			NtfyChannel: uuid.String(),
+			Address:     getCurrentAddress(c),
+		})
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		c.Response().Header().Set("Location", "/wallet/"+getCurrentAddress(c))
+		return c.Redirect(http.StatusSeeOther, "/wallet/"+getCurrentAddress(c))
+	})
+	e.POST("/wallet/:wallet/ntfy-reset", func(c echo.Context) error {
+
+		param := c.Param("wallet")
+		if param == "" {
+			return c.String(http.StatusNotFound, "not found")
+		}
+		if param != getCurrentAddress(c) {
+			return c.String(http.StatusForbidden, "access denied")
+		}
+
+		err := s.db.SaveWallet(db.Wallet{
+			NtfyChannel: "",
+			Address:     getCurrentAddress(c),
+		})
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		c.Response().Header().Set("Location", "/wallet/"+getCurrentAddress(c))
+		return c.Redirect(http.StatusSeeOther, "/wallet/"+getCurrentAddress(c))
+	})
+	e.GET("/db.json", func(c echo.Context) error {
+
+		all, err := s.db.ListNodes()
 		if err != nil {
 			return err
 		}
@@ -103,7 +151,7 @@ func (s *Server) Run(ctx context.Context) error {
 	})
 	e.GET("/satellites", func(c echo.Context) error {
 
-		all, err := s.nodes.SatelliteList()
+		all, err := s.db.SatelliteList()
 		if err != nil {
 			return err
 		}
@@ -117,7 +165,7 @@ func (s *Server) Run(ctx context.Context) error {
 	})
 	e.GET("/satellites.json", func(c echo.Context) error {
 
-		all, err := s.nodes.SatelliteList()
+		all, err := s.db.SatelliteList()
 		if err != nil {
 			return err
 		}
@@ -134,16 +182,16 @@ func (s *Server) Run(ctx context.Context) error {
 			NodeID: nodeID,
 		}
 
-		node, err := s.nodes.Get(id)
+		node, err := s.db.Get(id)
 		if err != nil {
 			return err
 		}
 
-		status, err := s.nodes.GetStatus(id)
+		status, err := s.db.GetStatus(id)
 		if err != nil {
 			return err
 		}
-		satellites, err := s.nodes.GetUsedSatellites(id)
+		satellites, err := s.db.GetUsedSatellites(id)
 		if err != nil {
 			return err
 		}

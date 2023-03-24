@@ -2,7 +2,7 @@
 <h2 id="what-is-this">What is this?</h2>
 <p>This is a <b>lightweight</b> community Satellite for <a href="https://storj.io">Storj</a> network.</p>
 <p>It doesn’t store permanent data, but helps to monitor your nodes + share the collected statistics with the community.</p>
-<p>For example: a connected Telegram bot can ping you, in case of any Storagenode problems.</p>
+<p>For example: it can notify via Telegram on <a href="https://ntfy.sh">ntfy.sh</a> (Push notifications) in case of any problem.</p>
 <h2 id="what-is-a-satellite">What is a satellite?</h2>
 <p>Satellite is the metadata server of the federated <a href="https://storj.io">Storj</a> network. Usually it stores the location the data, while the connected Storagenodes are hosting the data.</p>
 <p>This Satellite is special as it doesn’t really store data.</p>
@@ -14,6 +14,7 @@
 <p>Note: <code>STORJ_HEALTHCHECK_DETAILS</code> is not required, but it helps to maintain a list of <a href="/satellites">satellites</a> with reputation (usage) data. This flag will share the connected satellites + scores with the public (including this satellite).</p>
 <p><em>Warning</em>: Please carefully check which data is published on this site (address, version, uptime,…). Join only if you are comfortable with transparent data sharing. (Operator email address will never be shared, as we don’t store them.)</p>
 <h2 id="how-can-i-get-notifications-about-my-storagenode">How can I get notifications about my Storagenode</h2>
+<h3 id="telegram">Telegram</h3>
 <p>Search for <code>@satellite_spiridon_bot</code> on Telegram and use <code>/subscribe &lt;nodeid&gt;</code>.</p>
 <p>Supported commands:</p>
 <ul>
@@ -21,6 +22,9 @@
 <li><code>/unsubscribe &lt;nodeid&gt;</code>: unsubscribe for any new status change related to the give node</li>
 <li><code>/subscriptions</code>: list active subscriptions</li>
 </ul>
+<h3 id="ntfy.sh-mobiledesktop-push-notifications">Ntfy.sh (mobile/desktop, push notifications)</h3>
+<p>Login with your wallet, go to the <i>My Wallet</i> page, and generate a new ntfy.sh topic.</p>
+<p>Please note: ntfy.sh topics are public, if the random topic UUID is exposed, others may get notifications as well.</p>
 <h2 id="how-does-it-differ-from-original-storj-satellites">How does it differ from original Storj satellites</h2>
 <ul>
 <li>It doesn’t disqualify you</li>

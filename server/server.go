@@ -44,7 +44,7 @@ func Run(config Config) error {
 		return err
 	}
 
-	err = orm.AutoMigrate(&db.Node{}, &db.Status{}, &db.Subscription{}, &db.Satellite{}, &db.SatelliteUsage{})
+	err = orm.AutoMigrate(&db.Node{}, &db.Status{}, &db.Subscription{}, &db.Satellite{}, &db.SatelliteUsage{}, &db.Wallet{})
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func Run(config Config) error {
 		return err
 	}
 
-	not := bot.NewNotification(tg, sub)
+	not := bot.NewNotification(tg, sub, nodes)
 
 	validator := check.NewValidator(nodes, not, ident)
 

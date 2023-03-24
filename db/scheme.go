@@ -34,6 +34,11 @@ type Satellite struct {
 	Description *string
 }
 
+type Wallet struct {
+	Address     string `gorm:"primaryKey"`
+	NtfyChannel string
+}
+
 const (
 	NodeSubcription    int = 0
 	WalletSubscription int = 1

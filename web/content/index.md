@@ -6,7 +6,7 @@ This is a <b>lightweight</b> community Satellite for [Storj](https://storj.io) n
 
 It doesn't store permanent data, but helps to monitor your nodes + share the collected statistics with the community.
 
-For example: a connected Telegram bot can ping you, in case of any Storagenode problems.
+For example: it can notify via Telegram on [ntfy.sh](https://ntfy.sh) (Push notifications) in case of any problem.
 
 ## What is a satellite?
 
@@ -32,6 +32,8 @@ reputation (usage) data. This flag will share the connected satellites + scores 
 
 ## How can I get notifications about my Storagenode
 
+### Telegram
+
 Search for `@satellite_spiridon_bot` on Telegram and use `/subscribe <nodeid>`.
 
 Supported commands:
@@ -39,6 +41,12 @@ Supported commands:
 * `/subscribe <nodeid>`: subscribe to any status change related to the given `<nodeid>`
 * `/unsubscribe <nodeid>`: unsubscribe for any new status change related to the give node
 * `/subscriptions`: list active subscriptions
+
+### Ntfy.sh (mobile/desktop, push notifications)
+
+Login with your wallet, go to the <i>My Wallet</i> page, and generate a new ntfy.sh topic.
+
+Please note: ntfy.sh topics are public, if the random topic UUID is exposed, others may get notifications as well.
 
 ## How does it differ from original Storj satellites
 

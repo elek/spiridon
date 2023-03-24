@@ -7,7 +7,7 @@ build:
    COPY . .
    RUN --mount=type=cache,target=/root/.cache/go-build --mount=type=cache,target=/go/pkg/mod go install
    SAVE ARTIFACT /go/bin binary
-container:
+build-image:
    FROM alpine
    COPY +build/binary /usr/local/bin/
    SAVE IMAGE --push ghcr.io/elek/spiridon
