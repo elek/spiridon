@@ -12,7 +12,7 @@ import (
 
 type NodeEndpoint struct {
 	pb.DRPCNodeUnimplementedServer
-	Db *db.Nodes
+	Db *db.Persistence
 }
 
 func (s *NodeEndpoint) GetTime(context.Context, *pb.GetTimeRequest) (*pb.GetTimeResponse, error) {

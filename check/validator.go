@@ -14,11 +14,11 @@ import (
 
 type Validator struct {
 	checks       []Checker
-	nodes        *db.Nodes
+	nodes        *db.Persistence
 	notification *bot.Notification
 }
 
-func NewValidator(nodes *db.Nodes, notification *bot.Notification, identity *identity.FullIdentity) *Validator {
+func NewValidator(nodes *db.Persistence, notification *bot.Notification, identity *identity.FullIdentity) *Validator {
 	return &Validator{
 		nodes: nodes,
 		checks: []Checker{

@@ -27,14 +27,14 @@ var res embed.FS
 var dist embed.FS
 
 type Server struct {
-	db             *db.Nodes
+	db             *db.Persistence
 	port           int
 	cookieSecret   string
 	domain         string
 	metricProvider *metricsdk.MeterProvider
 }
 
-func NewServer(nodes *db.Nodes, port int, cookieSecret string, domain string, provider *metricsdk.MeterProvider) *Server {
+func NewServer(nodes *db.Persistence, port int, cookieSecret string, domain string, provider *metricsdk.MeterProvider) *Server {
 	return &Server{
 		db:             nodes,
 		port:           port,

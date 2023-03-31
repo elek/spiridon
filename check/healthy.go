@@ -10,10 +10,10 @@ import (
 )
 
 type Healthy struct {
-	nodes *db.Nodes
+	nodes *db.Persistence
 }
 
-func NewHealthy(nodes *db.Nodes) *Healthy {
+func NewHealthy(nodes *db.Persistence) *Healthy {
 	return &Healthy{
 		nodes: nodes,
 	}

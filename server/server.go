@@ -8,6 +8,7 @@ import (
 	"github.com/elek/spiridon/check"
 	"github.com/elek/spiridon/db"
 	"github.com/elek/spiridon/endpoint"
+	"github.com/elek/spiridon/telemetry"
 	"github.com/elek/spiridon/web"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -60,12 +61,12 @@ func Run(config Config) error {
 		return err
 	}
 
-	err = orm.AutoMigrate(&db.Node{}, &db.Status{}, &db.Subscription{}, &db.Satellite{}, &db.SatelliteUsage{}, &db.Wallet{})
+	err = orm.AutoMigrate(&db.Node{}, &db.Status{}, &db.Subscription{}, &db.Satellite{}, &db.SatelliteUsage{}, &db.Wallet{}, &db.Telemetry{})
 	if err != nil {
 		return err
 	}
 
-	nodes := db.NewNodes(orm)
+	persistence := db.NewPersistence(orm)
 	err = InitSatellites(orm)
 	if err != nil {
 		return err
@@ -83,7 +84,7 @@ func Run(config Config) error {
 	}
 
 	err = pb.DRPCRegisterNode(rpc.Mux, &endpoint.NodeEndpoint{
-		Db: nodes,
+		Db: persistence,
 	})
 	if err != nil {
 		return errors.WithStack(err)
@@ -105,17 +106,17 @@ func Run(config Config) error {
 	if config.Domain == "" {
 		panic("Domain is not set")
 	}
-	webServer := web.NewServer(nodes, config.WebPort, config.CookieSecret, config.Domain, metricProvider)
+	webServer := web.NewServer(persistence, config.WebPort, config.CookieSecret, config.Domain, metricProvider)
 
-	robot := bot.NewRobot(nodes, sub)
+	robot := bot.NewRobot(persistence, sub)
 	tg, err := bot.NewTelegram(config.TelegramToken, robot)
 	if err != nil {
 		return err
 	}
 
-	not := bot.NewNotification(tg, sub, nodes)
+	not := bot.NewNotification(tg, sub, persistence)
 
-	validator := check.NewValidator(nodes, not, ident)
+	validator := check.NewValidator(persistence, not, ident)
 
 	go func() {
 		http.Handle(
@@ -127,6 +128,12 @@ func Run(config Config) error {
 		)
 		_ = http.ListenAndServe(":4444", nil)
 	}()
+
+	t, err := telemetry.NewTelemetry(persistence)
+	if err != nil {
+		return err
+	}
+	go t.Run(ctx)
 	go http.ListenAndServe("0.0.0.0:9000", present.HTTP(monkit.Default))
 	go validator.Loop(ctx)
 	go tg.Run()

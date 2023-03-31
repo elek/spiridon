@@ -8,11 +8,11 @@ import (
 )
 
 type Robot struct {
-	nodes         *db.Nodes
+	nodes         *db.Persistence
 	subscriptions *db.Subscriptions
 }
 
-func NewRobot(nodes *db.Nodes, subscriptions *db.Subscriptions) *Robot {
+func NewRobot(nodes *db.Persistence, subscriptions *db.Subscriptions) *Robot {
 	return &Robot{nodes: nodes, subscriptions: subscriptions}
 }
 
@@ -102,7 +102,7 @@ func (r *Robot) Handle(targetType int, target string, message string) (string, e
 		}
 		return fmt.Sprintf("I have %d number of nodes registered in my DB", len(nodes)), nil
 	default:
-		return "Sorry, I don't really understand you. Type help for the available commands", nil
+		return "Sorry, I don't really understand you. Field help for the available commands", nil
 	}
 	return "", nil
 }

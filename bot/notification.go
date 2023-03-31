@@ -12,10 +12,10 @@ type Notification struct {
 	telegram      *Telegram
 	ntfy          *Ntfy
 	subscriptions *db.Subscriptions
-	db            *db.Nodes
+	db            *db.Persistence
 }
 
-func NewNotification(telegram *Telegram, subscriptions *db.Subscriptions, nodes *db.Nodes) *Notification {
+func NewNotification(telegram *Telegram, subscriptions *db.Subscriptions, nodes *db.Persistence) *Notification {
 	return &Notification{
 		telegram:      telegram,
 		subscriptions: subscriptions,

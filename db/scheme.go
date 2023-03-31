@@ -69,3 +69,11 @@ type CheckResult struct {
 	Duration time.Duration
 	Warning  bool
 }
+
+type Telemetry struct {
+	NodeID   NodeID    `gorm:"primaryKey"`
+	Key      string    `gorm:"primaryKey"`
+	Field    string    `gorm:"primaryKey"`
+	Received time.Time `gorm:"primaryKey"`
+	Value    float64
+}

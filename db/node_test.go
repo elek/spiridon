@@ -35,7 +35,7 @@ func TestSatellites(t *testing.T) {
 		Address: &address,
 	})
 
-	n := NewNodes(orm)
+	n := NewPersistence(orm)
 	node := Node{
 		ID: id,
 	}

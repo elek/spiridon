@@ -10,12 +10,12 @@ import (
 	"time"
 )
 
-type Nodes struct {
+type Persistence struct {
 	db *gorm.DB
 }
 
-func NewNodes(db *gorm.DB) *Nodes {
-	return &Nodes{db: db}
+func NewPersistence(db *gorm.DB) *Persistence {
+	return &Persistence{db: db}
 }
 
 type NodeID struct {
@@ -37,7 +37,7 @@ func (n *NodeID) Value() (driver.Value, error) {
 	return n.String(), nil
 }
 
-func (n *Nodes) UpdateCheckin(node Node) error {
+func (n *Persistence) UpdateCheckin(node Node) error {
 	p := Node{}
 	result := n.db.First(&p, "id=?", node.ID)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -54,25 +54,25 @@ func (n *Nodes) UpdateCheckin(node Node) error {
 	return res.Error
 }
 
-func (n *Nodes) Get(id NodeID) (Node, error) {
+func (n *Persistence) Get(id NodeID) (Node, error) {
 	node := Node{}
 	result := n.db.Model(&Node{}).First(&node, "id=?", id.String())
 	return node, result.Error
 }
 
-func (n *Nodes) ListNodes() ([]Node, error) {
+func (n *Persistence) ListNodes() ([]Node, error) {
 	var nodes []Node
 	n.db.Select([]string{"id", "first_check_in", "last_check_in", "free_disk", "address", "version", "commit_hash", "timestamp", "release", "health"}).Find(&nodes)
 	return nodes, nil
 }
 
-func (n *Nodes) ListNodesInternal() ([]Node, error) {
+func (n *Persistence) ListNodesInternal() ([]Node, error) {
 	var nodes []Node
 	n.db.Find(&nodes)
 	return nodes, nil
 }
 
-func (n *Nodes) GetStatus(id NodeID) (map[string]Status, error) {
+func (n *Persistence) GetStatus(id NodeID) (map[string]Status, error) {
 	var res []Status
 	result := n.db.Where("id = ?", id).Find(&res)
 
@@ -83,13 +83,13 @@ func (n *Nodes) GetStatus(id NodeID) (map[string]Status, error) {
 	return ret, result.Error
 }
 
-func (n *Nodes) GetUsedSatellites(id NodeID) ([]SatelliteUsage, error) {
+func (n *Persistence) GetUsedSatellites(id NodeID) ([]SatelliteUsage, error) {
 	res := []SatelliteUsage{}
 	result := n.db.Preload("Satellite").Where("node_id = ?", id).Find(&res)
 	return res, result.Error
 }
 
-func (n *Nodes) UpdateStatus(id NodeID, checked map[string]CheckResult) error {
+func (n *Persistence) UpdateStatus(id NodeID, checked map[string]CheckResult) error {
 	failed := false
 	warning := false
 	for k, c := range checked {
@@ -128,7 +128,7 @@ func (n *Nodes) UpdateStatus(id NodeID, checked map[string]CheckResult) error {
 	return res.Error
 }
 
-func (n *Nodes) UpdateSatellites(node Node, statuses []HealthStatus) error {
+func (n *Persistence) UpdateSatellites(node Node, statuses []HealthStatus) error {
 	n.db.Where("node_id = ?", node.ID).Delete(&SatelliteUsage{})
 	for _, st := range statuses {
 		res := n.db.Create(&SatelliteUsage{
@@ -149,7 +149,7 @@ type UsedSatellite struct {
 	Count     int
 }
 
-func (n *Nodes) SatelliteList() ([]UsedSatellite, error) {
+func (n *Persistence) SatelliteList() ([]UsedSatellite, error) {
 	res := []UsedSatellite{}
 	rows, err := n.db.Raw("select satellites.id, satellites.address, satellites.description,count(satellite_usages) FROM satellite_usages JOIN satellites ON satellite_usages.satellite_id = satellites.id group by satellites.id order by count desc").Rows()
 	if err != nil {
@@ -167,7 +167,7 @@ func (n *Nodes) SatelliteList() ([]UsedSatellite, error) {
 	return res, nil
 }
 
-func (n *Nodes) GetWalletWithNodes(walletAddress common.Address) (Wallet, []Node, error) {
+func (n *Persistence) GetWalletWithNodes(walletAddress common.Address) (Wallet, []Node, error) {
 	var nodes []Node
 	n.db.Where("operator_wallet = ?", walletAddress.String()).Select([]string{"id", "first_check_in", "last_check_in", "free_disk", "address", "version", "commit_hash", "timestamp", "release", "health"}).Find(&nodes)
 
@@ -179,7 +179,7 @@ func (n *Nodes) GetWalletWithNodes(walletAddress common.Address) (Wallet, []Node
 	return wallet, nodes, nil
 }
 
-func (n *Nodes) SaveWallet(w Wallet) error {
+func (n *Persistence) SaveWallet(w Wallet) error {
 	res := n.db.Clauses(
 		clause.OnConflict{
 			Columns:   []clause.Column{{Name: "address"}},
@@ -188,7 +188,7 @@ func (n *Nodes) SaveWallet(w Wallet) error {
 	return res.Error
 }
 
-func (n *Nodes) GetWallet(walletAddress common.Address) (Wallet, error) {
+func (n *Persistence) GetWallet(walletAddress common.Address) (Wallet, error) {
 	var wallet Wallet
 	n.db.First(&wallet, "address = ?", walletAddress.String())
 	if wallet.Address == "" {
