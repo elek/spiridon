@@ -4,21 +4,21 @@ import (
 	"context"
 	"embed"
 	_ "embed"
+	"fmt"
 	"github.com/elek/spiridon/db"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/nu7hatch/gouuid"
 	"github.com/pkg/errors"
-	"github.com/spacemonkeygo/monkit/v3"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
+	metricsdk "go.opentelemetry.io/otel/sdk/metric"
+	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 	"net/http"
 	"os"
 	"storj.io/common/storj"
 	"strconv"
-	"strings"
 )
-
-var mon = monkit.Package()
 
 //go:embed template
 var res embed.FS
@@ -27,32 +27,41 @@ var res embed.FS
 var dist embed.FS
 
 type Server struct {
-	db           *db.Nodes
-	port         int
-	cookieSecret string
-	domain       string
+	db             *db.Nodes
+	port           int
+	cookieSecret   string
+	domain         string
+	metricProvider *metricsdk.MeterProvider
 }
 
-func NewServer(nodes *db.Nodes, port int, cookieSecret string, domain string) *Server {
+func NewServer(nodes *db.Nodes, port int, cookieSecret string, domain string, provider *metricsdk.MeterProvider) *Server {
 	return &Server{
-		db:           nodes,
-		port:         port,
-		cookieSecret: cookieSecret,
-		domain:       domain,
+		db:             nodes,
+		port:           port,
+		cookieSecret:   cookieSecret,
+		domain:         domain,
+		metricProvider: provider,
 	}
 }
 
 func (s *Server) Run(ctx context.Context) error {
 	e := echo.New()
 	e.Debug = true
+	e.Use(otelecho.Middleware("spiridon"))
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+
+	meter := s.metricProvider.Meter("github.com/elek/spiridon/web_request")
+
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		counter, err := meter.Int64Counter("request")
+		fmt.Println(err)
 		return func(c echo.Context) error {
-			mon.Event("http_request", monkit.NewSeriesTag("path", strings.ReplaceAll(c.Request().URL.Path, "/", "_")))
+			attrs := semconv.HTTPServerMetricAttributesFromHTTPRequest("", c.Request())
+			counter.Add(context.TODO(), 1, attrs...)
 			return next(c)
 		}
 	})
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
 	if _, err := os.Stat("web/template/index.html"); err == nil {
 		e.Renderer = NewDevRender()
 	} else {

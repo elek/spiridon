@@ -3,14 +3,19 @@ package satellite
 import (
 	"context"
 	_ "embed"
+	"fmt"
 	bot "github.com/elek/spiridon/bot"
 	"github.com/elek/spiridon/check"
 	"github.com/elek/spiridon/db"
 	"github.com/elek/spiridon/endpoint"
 	"github.com/elek/spiridon/web"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/spacemonkeygo/monkit/v3/present"
+	otelprom "go.opentelemetry.io/otel/exporters/prometheus"
+	"go.opentelemetry.io/otel/sdk/metric"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -30,6 +35,17 @@ func Run(config Config) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
+	registry := prometheus.NewRegistry()
+	promExporter, err := otelprom.New(
+		otelprom.WithRegisterer(registry))
+	if err != nil {
+		fmt.Println(err)
+	}
+	metricProvider := metric.NewMeterProvider(
+		metric.WithReader(promExporter),
+	)
+
+	defer promExporter.Shutdown(ctx)
 	cfg := identity.Config{
 		CertPath: "identity.cert",
 		KeyPath:  "identity.key",
@@ -89,7 +105,7 @@ func Run(config Config) error {
 	if config.Domain == "" {
 		panic("Domain is not set")
 	}
-	webServer := web.NewServer(nodes, config.WebPort, config.CookieSecret, config.Domain)
+	webServer := web.NewServer(nodes, config.WebPort, config.CookieSecret, config.Domain, metricProvider)
 
 	robot := bot.NewRobot(nodes, sub)
 	tg, err := bot.NewTelegram(config.TelegramToken, robot)
@@ -101,10 +117,21 @@ func Run(config Config) error {
 
 	validator := check.NewValidator(nodes, not, ident)
 
+	go func() {
+		http.Handle(
+			"/metrics", promhttp.HandlerFor(
+				registry,
+				promhttp.HandlerOpts{
+					EnableOpenMetrics: true,
+				}),
+		)
+		_ = http.ListenAndServe(":4444", nil)
+	}()
 	go http.ListenAndServe("0.0.0.0:9000", present.HTTP(monkit.Default))
 	go validator.Loop(ctx)
 	go tg.Run()
 	go webServer.Run(ctx)
+
 	return rpc.Run(ctx)
 }
 
