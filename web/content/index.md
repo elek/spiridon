@@ -17,7 +17,7 @@ This Satellite is special as it doesn't really store data.
 
 ## How can I join to this Satellite
 
-Set the following environment variables for yor Storagenode:
+Set the following *environment variables* for yor Storagenode:
 
 ```bash
 STORJ_STORAGE2_TRUST_SOURCES="https://www.storj.io/dcs-satellites,storj://1NusSk8HjWppghiWvofEBDqryDaxiALPah8EyRxXWdNkwXg7ai@spiridon.anzix.net:7777"
@@ -26,9 +26,18 @@ STORJ_HEALTHCHECK_DETAILS=true
 ```
 
 Note: `STORJ_HEALTHCHECK_DETAILS` is not required, but it helps to maintain a list of [satellites](/satellites) with
-reputation (usage) data. This flag will share the connected satellites + scores with the public (including this satellite).
+reputation (usage) data. This flag will share the connected satellites + scores with the public (including this
+satellite).
 
-*Warning*: Please carefully check which data is published on this site (address, version, uptime,...). Join only if you are comfortable with transparent data sharing. (Operator email address will never be shared, as we don't store them.)
+*EXPERIMENTAL*: You can also redirect the metrics to this satellite which will be available on the dashboard. This is
+possible only with using a command line flags:
+
+```
+storagenode run .... --metrics.addr=spiridon.anzix.net:9000
+```
+
+*Warning*: Please carefully check which data is published on this site (address, version, uptime,...). Join only if you
+are comfortable with transparent data sharing. (Operator email address will never be shared, as we don't store them.)
 
 ## How can I get notifications about my Storagenode
 

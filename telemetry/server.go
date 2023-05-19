@@ -21,11 +21,12 @@ func NewTelemetry(db *db.Persistence) (Telemetry, error) {
 }
 
 func (t Telemetry) Run(ctx context.Context) error {
-	listen, err := telemetry.Listen("localhost:9000")
+	listen, err := telemetry.Listen("0.0.0.0:9000")
 	if err != nil {
 		return err
 	}
 	return listen.Serve(ctx, telemetry.HandlerFunc(func(application, instance string, key []byte, val float64) {
+
 		parts := strings.SplitN(string(key), " ", 2)
 		nodeID, err := storj.NodeIDFromString(instance)
 		if err != nil {
@@ -34,7 +35,6 @@ func (t Telemetry) Run(ctx context.Context) error {
 		}
 
 		// todo: filter interesting metrics
-
 		err = t.db.SaveTelemetry(db.Telemetry{
 			NodeID: db.NodeID{
 				NodeID: nodeID,

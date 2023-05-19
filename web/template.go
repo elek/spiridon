@@ -44,7 +44,7 @@ func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Con
 	k := map[string]interface{}{
 		"content": template.HTML(b.String()),
 		"path":    c.Request().URL.Path,
-		"wallet":  getCurrentAddress(c),
+		"wallet":  getCurrentWallet(c),
 	}
 	return t.templates.ExecuteTemplate(w, "frame.html", k)
 }
@@ -70,7 +70,7 @@ func (t *DynamicTemplate) Render(w io.Writer, name string, data interface{}, c e
 	k := map[string]interface{}{
 		"content": template.HTML(b.String()),
 		"path":    c.Request().URL.Path,
-		"wallet":  getCurrentAddress(c),
+		"wallet":  getCurrentWallet(c),
 	}
 	return templates.ExecuteTemplate(w, "frame.html", k)
 }

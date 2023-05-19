@@ -7,13 +7,18 @@ import (
 	"fmt"
 	"github.com/elek/spiridon/db"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/go-echarts/go-echarts/v2/charts"
+	"github.com/go-echarts/go-echarts/v2/opts"
+	"github.com/go-echarts/go-echarts/v2/types"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/nu7hatch/gouuid"
 	"github.com/pkg/errors"
+	"github.com/zeebo/errs"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	metricsdk "go.opentelemetry.io/otel/sdk/metric"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	"math/rand"
 	"net/http"
 	"os"
 	"storj.io/common/storj"
@@ -92,7 +97,7 @@ func (s *Server) Run(ctx context.Context) error {
 		if param == "" {
 			return c.String(http.StatusNotFound, "not found")
 		}
-		if param != getCurrentAddress(c) {
+		if param != getCurrentWallet(c) {
 			return c.String(http.StatusForbidden, "access denied")
 		}
 		wallet, all, err := s.db.GetWalletWithNodes(common.HexToAddress(param))
@@ -111,7 +116,7 @@ func (s *Server) Run(ctx context.Context) error {
 		if param == "" {
 			return c.String(http.StatusNotFound, "not found")
 		}
-		if param != getCurrentAddress(c) {
+		if param != getCurrentWallet(c) {
 			return c.String(http.StatusForbidden, "access denied")
 		}
 		uuid, err := uuid.NewV4()
@@ -120,13 +125,13 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 		err = s.db.SaveWallet(db.Wallet{
 			NtfyChannel: uuid.String(),
-			Address:     getCurrentAddress(c),
+			Address:     getCurrentWallet(c),
 		})
 		if err != nil {
 			return errors.WithStack(err)
 		}
-		c.Response().Header().Set("Location", "/wallet/"+getCurrentAddress(c))
-		return c.Redirect(http.StatusSeeOther, "/wallet/"+getCurrentAddress(c))
+		c.Response().Header().Set("Location", "/wallet/"+getCurrentWallet(c))
+		return c.Redirect(http.StatusSeeOther, "/wallet/"+getCurrentWallet(c))
 	})
 	e.POST("/wallet/:wallet/ntfy-reset", func(c echo.Context) error {
 
@@ -134,20 +139,20 @@ func (s *Server) Run(ctx context.Context) error {
 		if param == "" {
 			return c.String(http.StatusNotFound, "not found")
 		}
-		if param != getCurrentAddress(c) {
+		if param != getCurrentWallet(c) {
 			return c.String(http.StatusForbidden, "access denied")
 		}
 
 		err := s.db.SaveWallet(db.Wallet{
 			NtfyChannel: "",
-			Address:     getCurrentAddress(c),
+			Address:     getCurrentWallet(c),
 		})
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
-		c.Response().Header().Set("Location", "/wallet/"+getCurrentAddress(c))
-		return c.Redirect(http.StatusSeeOther, "/wallet/"+getCurrentAddress(c))
+		c.Response().Header().Set("Location", "/wallet/"+getCurrentWallet(c))
+		return c.Redirect(http.StatusSeeOther, "/wallet/"+getCurrentWallet(c))
 	})
 	e.GET("/db.json", func(c echo.Context) error {
 
@@ -200,6 +205,9 @@ func (s *Server) Run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+
+		owned := getCurrentWallet(c) == node.OperatorWallet
+
 		satellites, err := s.db.GetUsedSatellites(id)
 		if err != nil {
 			return err
@@ -209,11 +217,87 @@ func (s *Server) Run(ctx context.Context) error {
 			"node":       node,
 			"status":     status,
 			"satellites": satellites,
+			"owned":      owned,
 		})
 	})
+
+	e.GET("/node/:id/charts/ud", func(c echo.Context) error {
+		nodeID, err := storj.NodeIDFromString(c.Param("id"))
+		if err != nil {
+			return err
+		}
+		id := db.NodeID{
+			NodeID: nodeID,
+		}
+
+		node, err := s.db.Get(id)
+		if err != nil {
+			return err
+		}
+
+		if node.OperatorWallet != getCurrentWallet(c) {
+			return c.String(http.StatusForbidden, "access denied")
+		}
+
+		line := charts.NewLine()
+
+		line.SetGlobalOptions(
+			charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeWesteros}),
+			charts.WithTitleOpts(opts.Title{
+				Title:    "Upload and download requests",
+				Subtitle: "Number of upload / download requests per minutes",
+			}))
+		uStat, err := s.db.StateUpDown(id, "upload_success_size_bytes,scope=storj.io/storj/storagenode/piecestore")
+		if err != nil {
+			return errs.Wrap(err)
+		}
+
+		dStat, err := s.db.StateUpDown(id, "download_success_size_bytes,scope=storj.io/storj/storagenode/piecestore")
+		if err != nil {
+			return errs.Wrap(err)
+		}
+
+		line.SetXAxis(statToLabels(dStat)).
+			AddSeries("Upload", rateStat(uStat)).
+			AddSeries("Download", rateStat(dStat)).
+			SetSeriesOptions(charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
+		return line.Render(c.Response())
+	})
+
 	go func() {
 		<-ctx.Done()
 		e.Listener.Close()
 	}()
 	return e.Start("0.0.0.0:" + strconv.Itoa(s.port))
+}
+
+func rateStat(stat db.Stat) []opts.LineData {
+	items := make([]opts.LineData, 0)
+	for i, s := range stat.Values {
+		if i == 0 {
+			continue
+		}
+		items = append(items, opts.LineData{Value: s.Value - stat.Values[i-1].Value})
+	}
+	return items
+}
+
+func statToLabels(stat db.Stat) []string {
+	res := []string{}
+	for i, s := range stat.Values {
+		if i == 0 {
+			continue
+		}
+		res = append(res, s.Received.Format("15:04"))
+	}
+	return res
+}
+
+// generate random data for line chart
+func generateLineItems() []opts.LineData {
+	items := make([]opts.LineData, 0)
+	for i := 0; i < 7; i++ {
+		items = append(items, opts.LineData{Value: rand.Intn(300)})
+	}
+	return items
 }

@@ -32,7 +32,7 @@ func LoginEndpoints(e *echo.Echo, cookieSecret string, domain string) {
 		return c.Redirect(http.StatusTemporaryRedirect, "/login")
 	})
 	e.GET("/login", func(c echo.Context) error {
-		address := getCurrentAddress(c)
+		address := getCurrentWallet(c)
 		var js = ""
 		entries, err := dist.ReadDir("dist/assets")
 		if err != nil {
@@ -83,7 +83,7 @@ func LoginEndpoints(e *echo.Echo, cookieSecret string, domain string) {
 	})
 }
 
-func getCurrentAddress(c echo.Context) string {
+func getCurrentWallet(c echo.Context) string {
 	sess, _ := session.Get("auth", c)
 	var address string
 	if sess.Values["address"] != nil {
