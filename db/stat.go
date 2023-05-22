@@ -1,9 +1,13 @@
 package db
 
 import (
+	"context"
 	"github.com/pkg/errors"
+	"github.com/spacemonkeygo/monkit/v3"
 	"time"
 )
+
+var mon = monkit.Package()
 
 type Stat struct {
 	Name   string
@@ -72,11 +76,11 @@ func (c *StatCollection) AsNodeStat() NodeStat {
 	}
 }
 
-func (n *Persistence) LatestStat(nodeID NodeID) (StatCollection, error) {
-	c := StatCollection{}
+func (n *Persistence) LatestStat(ctx context.Context, nodeID NodeID) (stat StatCollection, err error) {
+	defer mon.Task()(&ctx)(&err)
 	rows, err := n.db.Raw("select b.received,b.key,b.field,b.value from telemetries b JOIN (select key,field,max(received) as received from telemetries where field in ('sum','recent') group by key,field) r ON r.field=b.field AND r.key=b.key AND r.received = b.received WHERE node_id=?;", nodeID).Rows()
 	if err != nil {
-		return c, errors.WithStack(err)
+		return stat, errors.WithStack(err)
 	}
 	defer rows.Close()
 
@@ -84,23 +88,24 @@ func (n *Persistence) LatestStat(nodeID NodeID) (StatCollection, error) {
 		var rec StatRecord
 		err = rows.Scan(&rec.Received, &rec.Key, &rec.Field, &rec.Value)
 		if err != nil {
-			return c, errors.WithStack(err)
+			return stat, errors.WithStack(err)
 		}
-		c.Insert(rec)
+		stat.Insert(rec)
 	}
 
-	return c, nil
+	return stat, nil
 
 }
 
-func (n *Persistence) GetStat(nodeID NodeID, key string) (Stat, error) {
-	s := Stat{
+func (n *Persistence) GetStat(ctx context.Context, nodeID NodeID, key string) (stat Stat, err error) {
+	defer mon.Task()(&ctx)(&err)
+	stat = Stat{
 		Values: make([]Measurement, 0),
 	}
 	rows, err := n.db.Raw("select p.period,coalesce(max(value),0) FROM (select date_trunc('hour',generate_series(CURRENT_TIMESTAMP - INTERVAL '25 hours', CURRENT_TIMESTAMP,'1 hour'::interval)) as period) p "+
 		"LEFT JOIN telemetries on period = date_trunc('hour',telemetries.received) AND  key =? and field ='count' and node_id = ? group by p.period order by p.period asc", key, nodeID).Rows()
 	if err != nil {
-		return s, errors.WithStack(err)
+		return stat, errors.WithStack(err)
 	}
 	defer rows.Close()
 
@@ -110,12 +115,12 @@ func (n *Persistence) GetStat(nodeID NodeID, key string) (Stat, error) {
 	for rows.Next() {
 		err := rows.Scan(&received, &val)
 		if err != nil {
-			return s, errors.WithStack(err)
+			return stat, errors.WithStack(err)
 		}
-		s.Values = append(s.Values, Measurement{
+		stat.Values = append(stat.Values, Measurement{
 			Received: received,
 			Value:    val,
 		})
 	}
-	return s, nil
+	return stat, err
 }

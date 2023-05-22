@@ -11,12 +11,8 @@ import (
 	"github.com/elek/spiridon/telemetry"
 	"github.com/elek/spiridon/web"
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/spacemonkeygo/monkit/v3/present"
-	otelprom "go.opentelemetry.io/otel/exporters/prometheus"
-	"go.opentelemetry.io/otel/sdk/metric"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -36,17 +32,6 @@ func Run(config Config) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	registry := prometheus.NewRegistry()
-	promExporter, err := otelprom.New(
-		otelprom.WithRegisterer(registry))
-	if err != nil {
-		fmt.Println(err)
-	}
-	metricProvider := metric.NewMeterProvider(
-		metric.WithReader(promExporter),
-	)
-
-	defer promExporter.Shutdown(ctx)
 	cfg := identity.Config{
 		CertPath: "identity.cert",
 		KeyPath:  "identity.key",
@@ -106,7 +91,7 @@ func Run(config Config) error {
 	if config.Domain == "" {
 		panic("Domain is not set")
 	}
-	webServer := web.NewServer(persistence, config.WebPort, config.CookieSecret, config.Domain, metricProvider)
+	webServer := web.NewServer(persistence, config.WebPort, config.CookieSecret, config.Domain)
 
 	robot := bot.NewRobot(persistence, sub)
 	tg, err := bot.NewTelegram(config.TelegramToken, robot)
@@ -120,12 +105,32 @@ func Run(config Config) error {
 
 	go func() {
 		http.Handle(
-			"/metrics", promhttp.HandlerFor(
-				registry,
-				promhttp.HandlerOpts{
-					EnableOpenMetrics: true,
-				}),
-		)
+			"/metrics", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				data := make(map[string][]string)
+				var components []string
+				monkit.Default.Stats(func(key monkit.SeriesKey, field string, val float64) {
+					components = components[:0]
+
+					measurement := sanitize(key.Measurement)
+					for tag, tagVal := range key.Tags.All() {
+						components = append(components,
+							fmt.Sprintf("%s=%q", sanitize(tag), sanitize(tagVal)))
+					}
+					components = append(components,
+						fmt.Sprintf("field=%q", sanitize(field)))
+
+					data[measurement] = append(data[measurement],
+						fmt.Sprintf("{%s} %g", strings.Join(components, ","), val))
+				})
+
+				for measurement, samples := range data {
+					_, _ = fmt.Fprintln(w, "# TYPE", measurement, "gauge")
+					for _, sample := range samples {
+						_, _ = fmt.Fprintf(w, "%s%s\n", measurement, sample)
+					}
+				}
+
+			}))
 		_ = http.ListenAndServe(":4444", nil)
 	}()
 
@@ -167,4 +172,30 @@ func InitSatellites(orm *gorm.DB) error {
 		}
 	}
 	return nil
+}
+
+// sanitize formats val to be suitable for prometheus.
+func sanitize(val string) string {
+	// https://prometheus.io/docs/concepts/data_model/
+	// specifies all metric names must match [a-zA-Z_:][a-zA-Z0-9_:]*
+	// Note: The colons are reserved for user defined recording rules.
+	// They should not be used by exporters or direct instrumentation.
+	if val == "" {
+		return ""
+	}
+	if '0' <= val[0] && val[0] <= '9' {
+		val = "_" + val
+	}
+	return strings.Map(func(r rune) rune {
+		switch {
+		case 'a' <= r && r <= 'z':
+			return r
+		case 'A' <= r && r <= 'Z':
+			return r
+		case '0' <= r && r <= '9':
+			return r
+		default:
+			return '_'
+		}
+	}, val)
 }

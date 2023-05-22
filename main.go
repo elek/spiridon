@@ -10,8 +10,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	otelprom "go.opentelemetry.io/otel/exporters/prometheus"
-	"go.opentelemetry.io/otel/sdk/metric"
 	"os"
 )
 
@@ -23,30 +21,8 @@ func main() {
 	}
 
 	c.RunE = func(cmd *cobra.Command, args []string) error {
-		//tp, err := initTracer()
-		//if err != nil {
-		//	return errors.WithStack(err)
-		//}
-		//defer func() {
-		//	if err := tp.Shutdown(context.Background()); err != nil {
-		//		log.Printf("Error shutting down tracer provider: %v", err)
-		//	}
-		//}()
-
-		promExporter, err := otelprom.New()
-		if err != nil {
-			return err
-		}
-
-		metric.NewMeterProvider(
-			metric.WithReader(promExporter),
-		)
-
-		//otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
-		//sdktrace.NewTracerProvider()
-
 		var k = koanf.New(".")
-		err = k.Load(confmap.Provider(map[string]interface{}{
+		err := k.Load(confmap.Provider(map[string]interface{}{
 			"web_port":  1234,
 			"drpc_port": 7777,
 			"db":        "postgres://postgres@localhost:5432/spiridon",

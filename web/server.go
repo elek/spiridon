@@ -4,7 +4,6 @@ import (
 	"context"
 	"embed"
 	_ "embed"
-	"fmt"
 	"github.com/elek/spiridon/db"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-echarts/go-echarts/v2/charts"
@@ -14,16 +13,18 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/nu7hatch/gouuid"
 	"github.com/pkg/errors"
+	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
-	metricsdk "go.opentelemetry.io/otel/sdk/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 	"math/rand"
 	"net/http"
 	"os"
 	"storj.io/common/storj"
 	"strconv"
+	"time"
 )
+
+var mon = monkit.Package()
 
 //go:embed template
 var res embed.FS
@@ -32,20 +33,18 @@ var res embed.FS
 var dist embed.FS
 
 type Server struct {
-	db             *db.Persistence
-	port           int
-	cookieSecret   string
-	domain         string
-	metricProvider *metricsdk.MeterProvider
+	db           *db.Persistence
+	port         int
+	cookieSecret string
+	domain       string
 }
 
-func NewServer(nodes *db.Persistence, port int, cookieSecret string, domain string, provider *metricsdk.MeterProvider) *Server {
+func NewServer(nodes *db.Persistence, port int, cookieSecret string, domain string) *Server {
 	return &Server{
-		db:             nodes,
-		port:           port,
-		cookieSecret:   cookieSecret,
-		domain:         domain,
-		metricProvider: provider,
+		db:           nodes,
+		port:         port,
+		cookieSecret: cookieSecret,
+		domain:       domain,
 	}
 }
 
@@ -56,14 +55,15 @@ func (s *Server) Run(ctx context.Context) error {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	meter := s.metricProvider.Meter("github.com/elek/spiridon/web_request")
-
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		counter, err := meter.Int64Counter("request")
-		fmt.Println(err)
 		return func(c echo.Context) error {
-			attrs := semconv.HTTPServerMetricAttributesFromHTTPRequest("", c.Request())
-			counter.Add(context.TODO(), 1, attrs...)
+			start := time.Now()
+			defer func() {
+				mon.DurationVal("web_request",
+					monkit.NewSeriesTag("path", c.Path()),
+					monkit.NewSeriesTag("method", c.Request().Method),
+				).Observe(time.Since(start))
+			}()
 			return next(c)
 		}
 	})
@@ -221,7 +221,7 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 
 		if owned {
-			collection, err := s.db.LatestStat(id)
+			collection, err := s.db.LatestStat(c.Request().Context(), id)
 			if err != nil {
 				return err
 			}
@@ -251,7 +251,7 @@ func (s *Server) Run(ctx context.Context) error {
 		if node.OperatorWallet != getCurrentWallet(c) {
 			return c.String(http.StatusForbidden, "access denied")
 		}
-		collection, err := s.db.LatestStat(id)
+		collection, err := s.db.LatestStat(c.Request().Context(), id)
 		if err != nil {
 			return err
 		}
@@ -287,12 +287,12 @@ func (s *Server) Run(ctx context.Context) error {
 				Title:    "Upload and download requests",
 				Subtitle: "Number of upload / download requests per minutes",
 			}))
-		uStat, err := s.db.GetStat(id, "upload_success_size_bytes,scope=storj.io/storj/storagenode/piecestore")
+		uStat, err := s.db.GetStat(c.Request().Context(), id, "upload_success_size_bytes,scope=storj.io/storj/storagenode/piecestore")
 		if err != nil {
 			return errs.Wrap(err)
 		}
 
-		dStat, err := s.db.GetStat(id, "download_cancel_duration_ns,action=GET,scope=storj.io/storj/storagenode/piecestore")
+		dStat, err := s.db.GetStat(c.Request().Context(), id, "download_cancel_duration_ns,action=GET,scope=storj.io/storj/storagenode/piecestore")
 		if err != nil {
 			return errs.Wrap(err)
 		}
