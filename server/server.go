@@ -23,6 +23,7 @@ import (
 	"storj.io/common/pb"
 	"storj.io/common/storj"
 	"strings"
+	"time"
 )
 
 //go:embed satellites.txt
@@ -52,6 +53,12 @@ func Run(config Config) error {
 	}
 
 	persistence := db.NewPersistence(orm)
+
+	err = persistence.Init()
+	if err != nil {
+		return err
+	}
+
 	err = InitSatellites(orm)
 	if err != nil {
 		return err
@@ -143,7 +150,17 @@ func Run(config Config) error {
 	go validator.Loop(ctx)
 	go tg.Run()
 	go webServer.Run(ctx)
-
+	go func() {
+		for {
+			persistence.RefreshViews(ctx)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(5 * time.Minute):
+				continue
+			}
+		}
+	}()
 	return rpc.Run(ctx)
 }
 

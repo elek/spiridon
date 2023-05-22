@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/spacemonkeygo/monkit/v3"
 	"time"
 )
@@ -76,9 +77,17 @@ func (c *StatCollection) AsNodeStat() NodeStat {
 	}
 }
 
+func (n *Persistence) RefreshViews(ctx context.Context) {
+	res := n.db.Exec("refresh materialized view telemetries_recent")
+	if res.Error != nil {
+		log.Error().Err(res.Error).Msg("Couldn't refresh telemetries_recent view")
+	}
+	log.Info().Msg("Materialized views are refreshed")
+}
+
 func (n *Persistence) LatestStat(ctx context.Context, nodeID NodeID) (stat StatCollection, err error) {
 	defer mon.Task()(&ctx)(&err)
-	rows, err := n.db.Raw("select b.received,b.key,b.field,b.value from telemetries b JOIN (select key,field,max(received) as received from telemetries where field in ('sum','recent') group by key,field) r ON r.field=b.field AND r.key=b.key AND r.received = b.received WHERE node_id=?;", nodeID).Rows()
+	rows, err := n.db.Raw("select received,key,field,value from telemetries_recent WHERE node_id=?;", nodeID).Rows()
 	if err != nil {
 		return stat, errors.WithStack(err)
 	}
