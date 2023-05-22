@@ -29,6 +29,19 @@
         <td>{{ .node.FreeDisk | size }}
         <td>
     </tr>
+    {{ if.owned }}
+    {{ if .stat }}
+    <tr>
+        <td>Used space</td>
+        <td>{{ .stat.usedSpace | sizef }}</td>
+    </tr>
+    {{ else }}
+    <tr>
+        <td>Used space</td>
+        <td>Redirect metrics with using <code>--metrics.addr=spiridon.anzix.net:9000</code> to get more information</td>
+    </tr>
+    {{ end }}
+    {{ end }}
     </tbody>
 </table>
 

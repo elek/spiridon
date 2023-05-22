@@ -1,0 +1,14 @@
+<h1 class="mt-5">{{ .node.ID }}</h1>
+<h2>Metrics</h2>
+<table class="table">
+    <tbody>
+    {{ range $stat := .stats.Records }}
+    <tr class="align-middle">
+
+        <td>{{ $stat.Key }}</td>
+        <td>{{ $stat.Field }}</td>
+        <td>{{ $stat.Value }}</td>
+    </tr>
+    {{ end }}
+    </tbody>
+</table>

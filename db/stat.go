@@ -16,25 +16,84 @@ type Measurement struct {
 	Value    int
 }
 
-func (n *Persistence) LatestStat(nodeID NodeID) (time.Time, error) {
-	var res time.Time
-	rows, err := n.db.Raw("select date_trunc('month',received),key,field,max(value) from telemetries where node_id = ?   AND field in ('recent','sum') AND received > current_timestamp - interval '32 days' group by date_trunc('month',received),key,field order by key desc", nodeID).Rows()
+type StatCollection struct {
+	Records []StatRecord
+}
+
+func (c *StatCollection) Insert(record StatRecord) {
+	for _, r := range c.Records {
+		if r.Key == record.Key && r.Field == record.Field {
+			return
+		}
+	}
+	c.Records = append(c.Records, record)
+}
+
+func (c *StatCollection) Get(key string, field string) StatRecord {
+	for _, r := range c.Records {
+		if r.Key == key && r.Field == field {
+			return StatRecord{
+				Received: r.Received,
+				Key:      r.Key,
+				Value:    r.Value,
+				Field:    r.Field,
+				Actual:   true,
+			}
+		}
+	}
+	return StatRecord{
+		Received: time.UnixMicro(0),
+		Key:      key,
+		Field:    field,
+		Value:    0,
+		Actual:   false,
+	}
+}
+
+type NodeStat struct {
+	Enabled         bool
+	UsedSpace       StatRecord
+	UploadedBytes   StatRecord
+	DownloadedBytes StatRecord
+}
+
+type StatRecord struct {
+	Received time.Time
+	Key      string
+	Field    string
+	Value    float64
+	Actual   bool
+}
+
+func (c *StatCollection) AsNodeStat() NodeStat {
+	return NodeStat{
+		Enabled:   len(c.Records) > 0,
+		UsedSpace: c.Get("scope=storj.io/storj/storagenode/monitor", "recent"),
+	}
+}
+
+func (n *Persistence) LatestStat(nodeID NodeID) (StatCollection, error) {
+	c := StatCollection{}
+	rows, err := n.db.Raw("select b.received,b.key,b.field,b.value from telemetries b JOIN (select key,field,max(received) as received from telemetries where field in ('sum','recent') group by key,field) r ON r.field=b.field AND r.key=b.key AND r.received = b.received WHERE node_id=?;", nodeID).Rows()
 	if err != nil {
-		return res, errors.WithStack(err)
+		return c, errors.WithStack(err)
 	}
 	defer rows.Close()
 
-	if rows.Next() {
-		err = rows.Scan(&res)
+	for rows.Next() {
+		var rec StatRecord
+		err = rows.Scan(&rec.Received, &rec.Key, &rec.Field, &rec.Value)
+		if err != nil {
+			return c, errors.WithStack(err)
+		}
+		c.Insert(rec)
 	}
-	if err != nil {
-		return res, errors.WithStack(err)
-	}
-	return res, nil
+
+	return c, nil
 
 }
 
-func (n *Persistence) StateUpDown(nodeID NodeID, key string) (Stat, error) {
+func (n *Persistence) GetStat(nodeID NodeID, key string) (Stat, error) {
 	s := Stat{
 		Values: make([]Measurement, 0),
 	}

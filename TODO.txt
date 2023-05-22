@@ -1,0 +1,8 @@
+
+What should be changed in `storj/storj` to get better results here?
+
+ * Make it possible to configure metrics with environment variable.
+ * Make it possible to report custom flag back to the satellite
+ * Adjusted metrics
+   * include payment model
+   * separate metrics / satellite

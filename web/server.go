@@ -213,11 +213,51 @@ func (s *Server) Run(ctx context.Context) error {
 			return err
 		}
 
-		return c.Render(http.StatusOK, "node", map[string]interface{}{
+		values := map[string]interface{}{
 			"node":       node,
 			"status":     status,
 			"satellites": satellites,
 			"owned":      owned,
+		}
+
+		if owned {
+			collection, err := s.db.LatestStat(id)
+			if err != nil {
+				return err
+			}
+			collection.Get("used_space,scope=storj.io/storj/storagenode/monitor", "recent")
+			values["stat"] = map[string]float64{
+				"usedSpace": collection.Get("used_space,scope=storj.io/storj/storagenode/monitor", "recent").Value,
+			}
+		}
+
+		return c.Render(http.StatusOK, "node", values)
+	})
+
+	e.GET("/node/:id/stat", func(c echo.Context) error {
+		nodeID, err := storj.NodeIDFromString(c.Param("id"))
+		if err != nil {
+			return err
+		}
+		id := db.NodeID{
+			NodeID: nodeID,
+		}
+
+		node, err := s.db.Get(id)
+		if err != nil {
+			return err
+		}
+
+		if node.OperatorWallet != getCurrentWallet(c) {
+			return c.String(http.StatusForbidden, "access denied")
+		}
+		collection, err := s.db.LatestStat(id)
+		if err != nil {
+			return err
+		}
+
+		return c.Render(http.StatusOK, "node_stat", map[string]any{
+			"stats": collection,
 		})
 	})
 
@@ -247,12 +287,12 @@ func (s *Server) Run(ctx context.Context) error {
 				Title:    "Upload and download requests",
 				Subtitle: "Number of upload / download requests per minutes",
 			}))
-		uStat, err := s.db.StateUpDown(id, "upload_success_size_bytes,scope=storj.io/storj/storagenode/piecestore")
+		uStat, err := s.db.GetStat(id, "upload_success_size_bytes,scope=storj.io/storj/storagenode/piecestore")
 		if err != nil {
 			return errs.Wrap(err)
 		}
 
-		dStat, err := s.db.StateUpDown(id, "download_success_size_bytes,scope=storj.io/storj/storagenode/piecestore")
+		dStat, err := s.db.GetStat(id, "download_success_size_bytes,scope=storj.io/storj/storagenode/piecestore")
 		if err != nil {
 			return errs.Wrap(err)
 		}

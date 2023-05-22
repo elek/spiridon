@@ -10,13 +10,19 @@ import (
 	"time"
 )
 
+func SizeFunc(size int64) string {
+	mb := size / 1024 / 1024
+	if mb > 1024 {
+		return fmt.Sprintf("%0.2f Gbyte", float64(mb)/1024)
+	}
+
+	return fmt.Sprintf("%d Mbyte", size/1024/1024)
+}
+
 var FuncMap = map[string]interface{}{
-	"size": func(size int64) string {
-		mb := size / 1024 / 1024
-		if mb > 1024 {
-			return fmt.Sprintf("%0.2f Gbyte", float64(mb)/1024)
-		}
-		return fmt.Sprintf("%d Mbyte", size/1024/1024)
+	"size": SizeFunc,
+	"sizef": func(size float64) string {
+		return SizeFunc(int64(size))
 	},
 	"ms": func(d time.Duration) string {
 
