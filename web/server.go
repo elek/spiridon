@@ -292,7 +292,7 @@ func (s *Server) Run(ctx context.Context) error {
 			return errs.Wrap(err)
 		}
 
-		dStat, err := s.db.GetStat(id, "download_success_size_bytes,scope=storj.io/storj/storagenode/piecestore")
+		dStat, err := s.db.GetStat(id, "download_cancel_duration_ns,action=GET,scope=storj.io/storj/storagenode/piecestore")
 		if err != nil {
 			return errs.Wrap(err)
 		}
