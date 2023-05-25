@@ -7,11 +7,13 @@
 <p>Satellite is the metadata server of the federated <a href="https://storj.io">Storj</a> network. Usually it stores the location the data, while the connected Storagenodes are hosting the data.</p>
 <p>This Satellite is special as it doesn’t really store data.</p>
 <h2 id="how-can-i-join-to-this-satellite">How can I join to this Satellite</h2>
-<p>Set the following environment variables for yor Storagenode:</p>
+<p>Set the following <em>environment variables</em> for yor Storagenode:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="va">STORJ_STORAGE2_TRUST_SOURCES</span><span class="op">=</span><span class="st">&quot;https://www.storj.io/dcs-satellites,storj://1NusSk8HjWppghiWvofEBDqryDaxiALPah8EyRxXWdNkwXg7ai@spiridon.anzix.net:7777&quot;</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="va">STORJ_SERVER_USE_PEER_CA_WHITELIST</span><span class="op">=</span>false</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="va">STORJ_HEALTHCHECK_DETAILS</span><span class="op">=</span>true</span></code></pre></div>
 <p>Note: <code>STORJ_HEALTHCHECK_DETAILS</code> is not required, but it helps to maintain a list of <a href="/satellites">satellites</a> with reputation (usage) data. This flag will share the connected satellites + scores with the public (including this satellite).</p>
+<p><em>EXPERIMENTAL</em>: You can also redirect the metrics to this satellite which will be available on the dashboard. This is possible only with using a command line flags:</p>
+<pre><code>storagenode run .... --metrics.addr=spiridon.anzix.net:9000</code></pre>
 <p><em>Warning</em>: Please carefully check which data is published on this site (address, version, uptime,…). Join only if you are comfortable with transparent data sharing. (Operator email address will never be shared, as we don’t store them.)</p>
 <h2 id="how-can-i-get-notifications-about-my-storagenode">How can I get notifications about my Storagenode</h2>
 <h3 id="telegram">Telegram</h3>
