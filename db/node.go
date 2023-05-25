@@ -198,7 +198,11 @@ func (n *Persistence) GetWallet(walletAddress common.Address) (Wallet, error) {
 }
 
 func (n *Persistence) Init() error {
-	_ = n.db.Exec("drop materialized view telemetries_recent")
-	res := n.db.Exec("create  materialized view telemetries_recent AS select b.node_id,b.received,b.key,b.field,b.value from telemetries b JOIN (select node_id,key,field,max(received) as received from telemetries where field in ('sum','recent') group by node_id,key,field) r ON r.node_id = b.node_id AND r.field=b.field AND r.key=b.key AND r.received = b.received")
-	return res.Error
+	res := n.db.Exec("select * from telemetries_recent limit 1")
+	if res.Error != nil {
+		res := n.db.Exec("create  materialized view telemetries_recent AS select b.node_id,b.received,b.key,b.field,b.value from telemetries b JOIN (select node_id,key,field,max(received) as received from telemetries where field in ('sum','recent') group by node_id,key,field) r ON r.node_id = b.node_id AND r.field=b.field AND r.key=b.key AND r.received = b.received")
+		return res.Error
+	}
+	return nil
+
 }
