@@ -151,6 +151,7 @@ func Run(config Config) error {
 	go tg.Run()
 	go webServer.Run(ctx)
 	go func() {
+		time.Sleep(5 * time.Minute)
 		for {
 			persistence.RefreshViews(ctx)
 			select {
