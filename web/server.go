@@ -313,11 +313,17 @@ func (s *Server) Run(ctx context.Context) error {
 
 func rateStat(stat db.Stat) []opts.LineData {
 	items := make([]opts.LineData, 0)
+	last := 0
 	for i, s := range stat.Values {
 		if i == 0 {
 			continue
 		}
-		items = append(items, opts.LineData{Value: s.Value - stat.Values[i-1].Value})
+		if stat.Values[i-1].Value > 0 && s.Value > 0 {
+			items = append(items, opts.LineData{Value: s.Value - stat.Values[i-1].Value})
+			last = s.Value - stat.Values[i-1].Value
+		} else {
+			items = append(items, opts.LineData{Value: last})
+		}
 	}
 	return items
 }
