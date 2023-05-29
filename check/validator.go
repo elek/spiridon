@@ -33,24 +33,26 @@ func NewValidator(nodes *db.Persistence, notification *bot.Notification, identit
 }
 
 func (v *Validator) Loop(ctx context.Context) error {
-	initialized := make(map[db.NodeID]bool)
+	initialized := make(map[string]bool)
 	for {
 		nodes, err := v.nodes.ListNodesInternal()
 		if err != nil {
 			panic(err)
 		}
 		for _, node := range nodes {
-			if running := initialized[node.ID]; !running {
-				go func() {
-					for {
-						v.checkNode(node)
-						time.Sleep(1 * time.Minute)
-					}
-				}()
-				initialized[node.ID] = true
+			if running := initialized[node.ID.String()]; !running {
+				go v.nodeLoop(node)
+				initialized[node.ID.String()] = true
 			}
 
 		}
+		time.Sleep(1 * time.Minute)
+	}
+}
+
+func (v *Validator) nodeLoop(node db.Node) {
+	for {
+		v.checkNode(node)
 		time.Sleep(1 * time.Minute)
 	}
 }
