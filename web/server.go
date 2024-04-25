@@ -304,10 +304,10 @@ func (s *Server) Run(ctx context.Context) error {
 		return line.Render(c.Response())
 	})
 
-	go func() {
-		<-ctx.Done()
-		e.Listener.Close()
-	}()
+	//go func() {
+	//	<-ctx.Done()
+	//	e.Listener.Close()
+	//}()
 	return e.Start("0.0.0.0:" + strconv.Itoa(s.port))
 }
 

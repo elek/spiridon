@@ -13,12 +13,18 @@ import (
 	"strings"
 )
 
-type Server struct {
+type Service struct {
 	Db *db.Persistence
 	UnimplementedDnsServiceServer
 }
 
-func (d *Server) Query(ctx context.Context, in *DnsPacket) (*DnsPacket, error) {
+func NewService(db *db.Persistence) *Service {
+	return &Service{
+		Db: db,
+	}
+}
+
+func (d *Service) Query(ctx context.Context, in *DnsPacket) (*DnsPacket, error) {
 	m := new(mdns.Msg)
 	if err := m.Unpack(in.Msg); err != nil {
 		return nil, fmt.Errorf("failed to unpack msg: %v", err)

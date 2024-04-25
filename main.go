@@ -1,6 +1,7 @@
 package main
 
 import (
+	config2 "github.com/elek/spiridon/config"
 	satellite "github.com/elek/spiridon/server"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/confmap"
@@ -38,7 +39,7 @@ func main() {
 		if err != nil {
 			return err
 		}
-		config := satellite.Config{}
+		config := config2.Config{}
 		err = k.Unmarshal("", &config)
 		if err != nil {
 			return errors.WithStack(err)

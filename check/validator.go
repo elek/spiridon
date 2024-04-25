@@ -32,7 +32,7 @@ func NewValidator(nodes *db.Persistence, notification *bot.Notification, identit
 	}
 }
 
-func (v *Validator) Loop(ctx context.Context) error {
+func (v *Validator) Run(ctx context.Context) error {
 	initialized := make(map[string]bool)
 	for {
 		nodes, err := v.nodes.ListNodesInternal()

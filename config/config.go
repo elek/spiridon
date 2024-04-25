@@ -1,4 +1,4 @@
-package satellite
+package config
 
 type Config struct {
 	TelegramToken string `koanf:"telegram_token"`
