@@ -7,15 +7,18 @@ import (
 	bot "github.com/elek/spiridon/bot"
 	"github.com/elek/spiridon/check"
 	"github.com/elek/spiridon/db"
+	"github.com/elek/spiridon/dns"
 	"github.com/elek/spiridon/endpoint"
-	"github.com/elek/spiridon/telemetry"
 	"github.com/elek/spiridon/web"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/spacemonkeygo/monkit/v3/present"
+	"google.golang.org/grpc"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -141,11 +144,6 @@ func Run(config Config) error {
 		_ = http.ListenAndServe(":4444", nil)
 	}()
 
-	t, err := telemetry.NewTelemetry(persistence)
-	if err != nil {
-		return err
-	}
-	go t.Run(ctx)
 	go http.ListenAndServe("0.0.0.0:9000", present.HTTP(monkit.Default))
 	go validator.Loop(ctx)
 	go tg.Run()
@@ -161,6 +159,21 @@ func Run(config Config) error {
 				continue
 			}
 		}
+	}()
+	go func() {
+
+		server := &dns.Server{
+			Db: persistence,
+		}
+		lis, err := net.Listen("tcp", "127.0.0.1:8053")
+		log.Error().Err(err)
+		grpcServer := grpc.NewServer()
+		dns.RegisterDnsServiceServer(grpcServer, server)
+		fmt.Println("listening")
+		err = grpcServer.Serve(lis)
+		log.Error().Err(err)
+		fmt.Println("done")
+
 	}()
 	return rpc.Run(ctx)
 }

@@ -64,7 +64,7 @@ func (n *Persistence) ListNodes() ([]Node, error) {
 	var nodes []Node
 	n.db.
 		Select([]string{"id", "first_check_in", "last_check_in", "free_disk", "address", "version", "commit_hash", "timestamp", "release", "health"}).
-		Where("last_check_in > ?", time.Now().Add(time.Hour*72)).
+		Where("last_check_in > ?", time.Now().Add(-time.Hour*72)).
 		Find(&nodes)
 
 	return nodes, nil
